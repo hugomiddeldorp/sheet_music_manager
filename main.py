@@ -22,6 +22,7 @@ def dbStart():
 
 
 def find(search):
+    global search_len
     if len(search) > 0:
         search.replace(" ", "+")
         search += "*"
@@ -36,15 +37,16 @@ def find(search):
         
     results_array = []
     for work in results: results_array.append(work)
+    search_len = len(results_array)
     return results_array
 
 
-def displayResults(results, highlight):
-    global num_rows, num_cols
+def displayResults(results):
+    global num_rows, num_cols, highlight
     # TODO: Figure out a better way to handle highlight
-    # and also think of how to handle when results go over page lim#
-    y_offst= 2
-    row_padding = 5
+    # and also think of how to handle when results go over page lim
+    y_offst= 2 # From top of window
+    screen_padding = 5 # From other lines on screen
     highlight = min(highlight, len(results))
 
     results_win.clear()
@@ -54,7 +56,7 @@ def displayResults(results, highlight):
             curses.A_REVERSE)
 
     y = 0
-    for work in results[:num_rows - row_padding]:
+    for work in results[:num_rows - screen_padding]:
         r = work[0] + " - " + work[1] # Title - Composer
         if y == highlight:
             results_win.addstr(y + y_offst, 2, r, curses.A_REVERSE)
@@ -69,7 +71,8 @@ def displayResults(results, highlight):
 
 
 def init():
-    global screen, search_bar, results_win, num_rows, num_cols, buffer, highlight
+    global screen, search_bar, results_win, num_rows, num_cols
+    global buffer, highlight, search_len, buffer_offset
 
     dbStart()
     screen = curses.initscr()
@@ -78,6 +81,8 @@ def init():
     results_win = curses.newwin(num_rows - 3, num_cols, 3, 0)
     buffer = ""
     highlight = 0
+    search_len = 0
+    buffer_offset = 0
 
     curses.start_color()
     curses.noecho()
@@ -96,7 +101,7 @@ def init():
 
     resetSearchBar()
 
-    displayResults(find(""), highlight)
+    displayResults(find(""))
     search_bar.move(0, 0)
 
 
@@ -111,9 +116,8 @@ def resetSearchBar():
 
 
 def processKeyEvent():
-    # TODO: need to handle when chars go over screen limit
     # TODO: add sideways movement
-    global buffer, highlight
+    global buffer, highlight, search_len, buffer_offset
     c = search_bar.getch()
 
     if buffer == "":
@@ -128,24 +132,30 @@ def processKeyEvent():
         num_rows, num_cols = screen.getmaxyx()
     elif c == curses.KEY_MOUSE or c == curses.KEY_LEFT or c == curses.KEY_RIGHT:
         pass
-    elif c == curses.KEY_DOWN:
-        highlight += 1
+    elif c == curses.KEY_DOWN: 
+        if highlight < search_len - 1: highlight += 1
     elif c == curses.KEY_UP:
         if highlight > 0:
             highlight -= 1
     elif c == curses.KEY_BACKSPACE:
         if len(buffer) > 0:
-            search_bar.delch(0, len(buffer) - 1)
+            search_bar.delch(0, len(buffer) - buffer_offset - 1)
             buffer = buffer[:-1]
+            if buffer_offset:
+                buffer_offset -= 1
+                search_bar.addstr(0, 0, buffer[buffer_offset:])
     elif c == 27:
         buffer = ""
         resetSearchBar()
     else:
         buffer += chr(c)
-        search_bar.addch(0, len(buffer) - 1, c)
+        if len(buffer) >= search_bar.getmaxyx()[1]:
+            search_bar.delch(0, 0)
+            buffer_offset += 1
+        search_bar.addch(0, len(buffer) - buffer_offset - 1, c)
 
     results = find(buffer)
-    displayResults(results, highlight)
+    displayResults(results)
 
     return True
     
