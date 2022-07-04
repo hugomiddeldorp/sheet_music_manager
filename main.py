@@ -1,4 +1,5 @@
-import sys
+import sys, os, subprocess
+from subprocess import DEVNULL, STDOUT
 import curses
 import sqlite3
 from curses import wrapper
@@ -40,6 +41,14 @@ def find(search):
     for work in results: results_array.append(work)
     search_len = len(results_array)
     return results_array
+
+
+def openResult(results, i):
+    # TODO: Handle errors
+    try:
+        os.startfile("Aquanaut.pdf")
+    except:
+        p = subprocess.Popen(["open", "Aquanaut.pdf"], stdout=DEVNULL, stderr=STDOUT)
 
 
 def displayResults(results):
@@ -134,6 +143,8 @@ def processKeyEvent():
     if c == ord('\n'):
         if buffer == ":q":
             return False
+        results = find(buffer)
+        openResult(results, highlight + results_offset)
         buffer = ""
         resetSearchBar()
     elif c == curses.KEY_RESIZE:
@@ -161,6 +172,8 @@ def processKeyEvent():
                 buffer_offset -= 1
                 search_bar.addstr(0, 0, buffer[buffer_offset:])
     elif c == 27:
+        highlight = 0
+        results_offset = 0
         buffer = ""
         resetSearchBar()
     else:
