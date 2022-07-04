@@ -1,0 +1,169 @@
+{
+    "status": {
+        "success": "true",
+        "source": "db",
+        "rows": 16,
+        "processingtime": 0.002079010009765625,
+        "api": "Open Opus-dyn",
+        "version": "1.20.6"
+    },
+    "request": {
+        "type": "genre",
+        "item": "Recommended"
+    },
+    "composer": {
+        "id": "105",
+        "name": "Debussy",
+        "epoch": "Late Romantic",
+        "birth": "1862-01-01",
+        "death": "1918-01-01",
+        "complete_name": "Claude Debussy",
+        "portrait": "https://assets.openopus.org/portraits/58875477-1568084877.jpg"
+    },
+    "works": [
+        {
+            "title": "Cello Sonata in D minor, L.135",
+            "subtitle": "",
+            "searchterms": "",
+            "popular": "0",
+            "recommended": "1",
+            "id": "13246",
+            "genre": "Chamber"
+        },
+        {
+            "title": "Sonata for Flute, Viola and Harp, L.137",
+            "subtitle": "",
+            "searchterms": "",
+            "popular": "0",
+            "recommended": "1",
+            "id": "13190",
+            "genre": "Chamber"
+        },
+        {
+            "title": "String Quartet in G minor, L.85, op. 10",
+            "subtitle": "",
+            "searchterms": "",
+            "popular": "1",
+            "recommended": "1",
+            "id": "13260",
+            "genre": "Chamber"
+        },
+        {
+            "title": "Violin Sonata in G minor, L.140",
+            "subtitle": "",
+            "searchterms": "",
+            "popular": "0",
+            "recommended": "1",
+            "id": "13203",
+            "genre": "Chamber"
+        },
+        {
+            "title": "Children's Corner, L.113",
+            "subtitle": "",
+            "searchterms": "",
+            "popular": "1",
+            "recommended": "1",
+            "id": "13251",
+            "genre": "Keyboard"
+        },
+        {
+            "title": "En blanc et noir, for 2 pianos, L.134 ",
+            "subtitle": "",
+            "searchterms": "",
+            "popular": "0",
+            "recommended": "1",
+            "id": "13235",
+            "genre": "Keyboard"
+        },
+        {
+            "title": "L'isle joyeuse, L.106",
+            "subtitle": "",
+            "searchterms": "",
+            "popular": "0",
+            "recommended": "1",
+            "id": "13308",
+            "genre": "Keyboard"
+        },
+        {
+            "title": "Pr\u00e9ludes, Book 1, L.117",
+            "subtitle": "",
+            "searchterms": "",
+            "popular": "0",
+            "recommended": "1",
+            "id": "13204",
+            "genre": "Keyboard"
+        },
+        {
+            "title": "Pr\u00e9ludes, Book 2, L.123",
+            "subtitle": "",
+            "searchterms": "",
+            "popular": "0",
+            "recommended": "1",
+            "id": "13240",
+            "genre": "Keyboard"
+        },
+        {
+            "title": "Suite Bergamasque, L.75 ",
+            "subtitle": "",
+            "searchterms": "",
+            "popular": "1",
+            "recommended": "1",
+            "id": "13297",
+            "genre": "Keyboard"
+        },
+        {
+            "title": "Images, L.122",
+            "subtitle": "",
+            "searchterms": "",
+            "popular": "0",
+            "recommended": "1",
+            "id": "13303",
+            "genre": "Orchestral"
+        },
+        {
+            "title": "La Mer, L.109",
+            "subtitle": "Three symphonic sketches",
+            "searchterms": "",
+            "popular": "1",
+            "recommended": "1",
+            "id": "13331",
+            "genre": "Orchestral"
+        },
+        {
+            "title": "Nocturnes, L.91",
+            "subtitle": "",
+            "searchterms": "",
+            "popular": "0",
+            "recommended": "1",
+            "id": "13258",
+            "genre": "Orchestral"
+        },
+        {
+            "title": "Pr\u00e9lude \u00e0 l'apr\u00e8s-midi d'un faune, L.86",
+            "subtitle": "",
+            "searchterms": "",
+            "popular": "1",
+            "recommended": "1",
+            "id": "13215",
+            "genre": "Orchestral"
+        },
+        {
+            "title": "Jeux, L.126",
+            "subtitle": "Ballet",
+            "searchterms": "",
+            "popular": "0",
+            "recommended": "1",
+            "id": "13301",
+            "genre": "Stage"
+        },
+        {
+            "title": "Pell\u00e9as et M\u00e9lisande, L.88",
+            "subtitle": "Opera",
+            "searchterms": "",
+            "popular": "0",
+            "recommended": "1",
+            "id": "13332",
+            "genre": "Stage"
+        }
+    ]
+}

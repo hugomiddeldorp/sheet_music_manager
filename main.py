@@ -6,8 +6,9 @@ from curses import wrapper
 
 def dbStart():
     global conn
+    # TODO: Populate db with more pieces
 
-    conn = sqlite3.connect('library.db')
+    conn = sqlite3.connect('lib.db')
     try:
         conn.execute("""CREATE VIRTUAL TABLE works
                 USING FTS5(title, composer);""")
@@ -42,22 +43,27 @@ def find(search):
 
 
 def displayResults(results):
-    global num_rows, num_cols, highlight
-    # TODO: Figure out a better way to handle highlight
-    # and also think of how to handle when results go over page lim
-    y_offst= 2 # From top of window
-    screen_padding = 5 # From other lines on screen
-    highlight = min(highlight, len(results))
+    global num_rows, num_cols, highlight, results_offset
 
-    results_win.clear()
+    y_offst= 2 # From top of window
+    scr_y_padding = 7 # From other rows on screen
+    scr_x_padding = 4 # Other columns on screen
+
+    results_win.erase()
     results_win.border()
     results_win.addstr(0, 0,
             " RESULTS ",
             curses.A_REVERSE)
 
     y = 0
-    for work in results[:num_rows - screen_padding]:
+    for work in results[results_offset:
+                        results_offset + num_rows - scr_y_padding]:
         r = work[0] + " - " + work[1] # Title - Composer
+        
+        if len(r) >= num_cols - scr_x_padding:
+            r = r[:num_cols - scr_x_padding - 3]
+            r += "..."
+
         if y == highlight:
             results_win.addstr(y + y_offst, 2, r, curses.A_REVERSE)
         else:
@@ -72,7 +78,7 @@ def displayResults(results):
 
 def init():
     global screen, search_bar, results_win, num_rows, num_cols
-    global buffer, highlight, search_len, buffer_offset
+    global buffer, highlight, search_len, buffer_offset, results_offset
 
     dbStart()
     screen = curses.initscr()
@@ -83,6 +89,7 @@ def init():
     highlight = 0
     search_len = 0
     buffer_offset = 0
+    results_offset = 0
 
     curses.start_color()
     curses.noecho()
@@ -106,7 +113,7 @@ def init():
 
 
 def resetSearchBar():
-    search_bar.clear()
+    search_bar.erase()
     search_bar.addstr(0, 0,
             "Type to start searching...",
             curses.A_DIM)
@@ -117,11 +124,12 @@ def resetSearchBar():
 
 def processKeyEvent():
     # TODO: add sideways movement
-    global buffer, highlight, search_len, buffer_offset
+    global buffer, highlight, search_len, buffer_offset, results_offset
+    global num_rows
     c = search_bar.getch()
 
     if buffer == "":
-        search_bar.clear()
+        search_bar.erase()
 
     if c == ord('\n'):
         if buffer == ":q":
@@ -129,14 +137,22 @@ def processKeyEvent():
         buffer = ""
         resetSearchBar()
     elif c == curses.KEY_RESIZE:
+        # TODO: actually handle this properly
         num_rows, num_cols = screen.getmaxyx()
     elif c == curses.KEY_MOUSE or c == curses.KEY_LEFT or c == curses.KEY_RIGHT:
         pass
     elif c == curses.KEY_DOWN: 
-        if highlight < search_len - 1: highlight += 1
+        # TODO: ERROR Type text and use arrows,
+        #       the cursor goes down to last result
+        if highlight < search_len - results_offset - 1:
+            if highlight >= num_rows - 8:
+                results_offset += 1
+            else: highlight += 1
     elif c == curses.KEY_UP:
-        if highlight > 0:
+        if highlight > 0: 
             highlight -= 1
+        elif results_offset > 0:
+            results_offset -= 1
     elif c == curses.KEY_BACKSPACE:
         if len(buffer) > 0:
             search_bar.delch(0, len(buffer) - buffer_offset - 1)
@@ -171,7 +187,6 @@ def kill():
 
 
 def main(screen):
-    # TODO: properly manage screen_resize
     init()
 
     while processKeyEvent():
