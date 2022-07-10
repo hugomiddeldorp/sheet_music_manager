@@ -4,43 +4,7 @@ import curses
 import sqlite3
 from curses import wrapper
 
-
-def dbStart():
-    global conn
-    # TODO: Populate db with more pieces
-
-    conn = sqlite3.connect('lib.db')
-    try:
-        conn.execute("""CREATE VIRTUAL TABLE works
-                USING FTS5(title, composer);""")
-        print("Database created")
-    except:
-#        conn.execute("""INSERT INTO WORKS (TITLE,COMPOSER)
-#                VALUES ('Violin Partita No.2 in D minor, BWV 1004', 'Johann Sebastian Bach');""")
-#        conn.execute("""INSERT INTO WORKS (TITLE,COMPOSER)
-#                VALUES ('Piano Quintet in E flat major, op. 44', 'Robert Schumann');""")
-#        conn.commit()
-        pass
-
-
-def find(search):
-    global search_len
-    if len(search) > 0:
-        search.replace(" ", "+")
-        search += "*"
-
-    try:
-        results = conn.execute("""SELECT *
-                FROM works
-                WHERE works=?;""", (search,))
-    except:
-        results = conn.execute("""SELECT *
-                FROM works""")
-        
-    results_array = []
-    for work in results: results_array.append(work)
-    search_len = len(results_array)
-    return results_array
+import db
 
 
 def openResult(results, i):
@@ -52,10 +16,10 @@ def openResult(results, i):
 
 
 def displayResults(results):
-    global num_rows, num_cols, highlight, results_offset
+    global highlight, results_offset
 
     y_offst= 2 # From top of window
-    scr_y_padding = 7 # From other rows on screen
+    scr_y_padding = 6 # From other rows on screen
     scr_x_padding = 4 # Other columns on screen
 
     results_win.erase()
@@ -89,7 +53,7 @@ def init():
     global screen, search_bar, results_win, num_rows, num_cols
     global buffer, highlight, search_len, buffer_offset, results_offset
 
-    dbStart()
+    db.init()
     screen = curses.initscr()
     num_rows, num_cols = screen.getmaxyx()
     search_bar = curses.newwin(1, num_cols, 1, 0)
@@ -117,7 +81,7 @@ def init():
 
     resetSearchBar()
 
-    displayResults(find(""))
+    displayResults(db.find(""))
     search_bar.move(0, 0)
 
 
@@ -128,6 +92,27 @@ def resetSearchBar():
             curses.A_DIM)
     search_bar.refresh()
     screen.refresh()
+    search_bar.move(0, 0)
+
+def screenResize():
+    global num_rows, num_cols
+
+    num_rows, num_cols = screen.getmaxyx()
+
+    screen.resize(num_rows, num_cols)
+    search_bar.resize(1, num_cols)
+    results_win.resize(num_rows - 3, num_cols)
+    
+    screen.clear()
+    search_bar.clear()
+    results_win.clear()
+
+    screen.addstr(0, 0,
+            " Sheet Music Manager v0.1 - by Hugo Middeldorp ",
+            curses.A_BOLD | curses.A_REVERSE)
+    resetSearchBar()
+    screen.refresh()
+
     search_bar.move(0, 0)
 
 
@@ -143,13 +128,15 @@ def processKeyEvent():
     if c == ord('\n'):
         if buffer == ":q":
             return False
-        results = find(buffer)
+        results = db.find(buffer)
+        search_len = len(results)
         openResult(results, highlight + results_offset)
         buffer = ""
         resetSearchBar()
     elif c == curses.KEY_RESIZE:
-        # TODO: actually handle this properly
-        num_rows, num_cols = screen.getmaxyx()
+        # TODO: don't reset search after resizing
+        screenResize()
+        buffer = ""
     elif c == curses.KEY_MOUSE or c == curses.KEY_LEFT or c == curses.KEY_RIGHT:
         pass
     elif c == curses.KEY_DOWN: 
@@ -183,15 +170,14 @@ def processKeyEvent():
             buffer_offset += 1
         search_bar.addch(0, len(buffer) - buffer_offset - 1, c)
 
-    results = find(buffer)
+    results = db.find(buffer)
     displayResults(results)
 
     return True
     
 
-
 def kill():
-    conn.close()
+    db.close()
     curses.nocbreak()
     screen.keypad(False)
     search_bar.keypad(False)
