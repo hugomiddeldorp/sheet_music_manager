@@ -10,13 +10,14 @@ def main():
         print("Database created")
     except: pass
 
-    with open("bach.json", "r") as json_file:
+    with open("debussy.json", "r") as json_file:
         data = json.load(json_file)
 
     composer = data["composer"]["complete_name"]
+    path  = "Aquanaut.pdf"
     for work in data["works"]:
-        conn.execute("""INSERT INTO works (title, composer)
-                VALUES (?, ?)""", (work["title"], composer))
+        conn.execute("""INSERT INTO works (title, composer, path)
+                VALUES (?, ?, ?)""", (work["title"], composer, path))
         print("Added {}".format(work["title"]))
 
     conn.commit()

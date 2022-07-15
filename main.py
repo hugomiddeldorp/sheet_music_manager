@@ -9,10 +9,11 @@ import db
 
 def openResult(results, i):
     # TODO: Handle errors
+    path = results[i][2]
     try:
-        os.startfile("Aquanaut.pdf")
+        os.startfile(path)
     except:
-        p = subprocess.Popen(["open", "Aquanaut.pdf"], stdout=DEVNULL, stderr=STDOUT)
+        p = subprocess.Popen(["open", path], stdout=DEVNULL, stderr=STDOUT)
 
 
 def displayResults(results):
@@ -31,7 +32,7 @@ def displayResults(results):
     y = 0
     for work in results[results_offset:
                         results_offset + num_rows - scr_y_padding]:
-        r = work[0] + " - " + work[1] # Title - Composer
+        r = work[0] + " - " + work[2] # Title - Composer
         
         if len(r) >= num_cols - scr_x_padding:
             r = r[:num_cols - scr_x_padding - 3]
@@ -60,7 +61,6 @@ def init():
     results_win = curses.newwin(num_rows - 3, num_cols, 3, 0)
     buffer = ""
     highlight = 0
-    search_len = 0
     buffer_offset = 0
     results_offset = 0
 
@@ -81,7 +81,9 @@ def init():
 
     resetSearchBar()
 
-    displayResults(db.find(""))
+    results = db.find("")
+    search_len = len(results)
+    displayResults(results)
     search_bar.move(0, 0)
 
 
