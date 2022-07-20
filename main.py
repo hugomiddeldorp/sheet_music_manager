@@ -106,7 +106,7 @@ def resetSearchBar():
     search_bar.move(0, 0)
 
 
-def updateStatus(status=":q to Quit | :u to Update library"):
+def updateStatus(status=":q to Quit | :u to Update library | Ctrl-E to Edit current entry"):
     status_bar.erase()
     status_bar.addstr(0, 0, status, curses.A_ITALIC)
     status_bar.refresh()
@@ -121,6 +121,7 @@ def screenResize():
     screen.resize(num_rows, num_cols)
     search_bar.resize(1, num_cols)
     status_bar.resize(1, num_cols)
+    status_bar.mvwin(num_rows - 1, 0)
     results_win.resize(num_rows - 4, num_cols)
     
     screen.clear()
@@ -135,6 +136,7 @@ def screenResize():
     screen.refresh()
 
     search_bar.move(0, 0)
+    updateStatus()
 
 
 def updateLibrary():
@@ -145,7 +147,6 @@ def updateLibrary():
     for file in file_names:
         char = screen.getch()
         if char == ord("c"):
-            updateStatus("Update cancelled, {}% complete".format(percent))
             break
         db.update(file)
         i += 1
@@ -157,10 +158,15 @@ def updateLibrary():
             else: status += "#"
         status += "] {}% | Press C to cancel".format(percent)
         updateStatus(status)
+    if percent < 100:
+        updateStatus("Update cancelled, {}% complete".format(percent))
+    else:
+        updateStatus("Update complete")
     screen.nodelay(False)
 
 
 def editEntry(results, i):
+    # TODO: More robust way to enter text
     curses.echo()
     status_title = "Title: "
     updateStatus(status_title)
@@ -173,11 +179,12 @@ def editEntry(results, i):
     path = results[i][2]
     updates = {"title": title.decode("utf-8"), "composer": composer.decode("utf-8")}
     db.editEntry(path, updates)
+    updateStatus()
 
 
 def processKeyEvent():
+    # TODO: Refactor this whole function
     # TODO: add sideways movement
-    # TODO: remove entry from db - how to handle?
     global buffer, highlight, search_len, buffer_offset, results_offset
     global num_rows
     c = search_bar.getch()
@@ -189,15 +196,16 @@ def processKeyEvent():
         if buffer == ":q":
             return False
         elif buffer == ":u":
+            highlight = 0
+            results_offset = 0
+            buffer = ""
+            resetSearchBar()
             updateLibrary()
         else:
             results = db.find(buffer)
             search_len = len(results)
             openResult(results, highlight + results_offset)
-        buffer = ""
-        resetSearchBar()
     elif c == curses.KEY_RESIZE:
-        # TODO: don't reset search after resizing
         screenResize()
         buffer = ""
     elif c == curses.KEY_MOUSE or c == curses.KEY_LEFT or c == curses.KEY_RIGHT:
@@ -232,6 +240,7 @@ def processKeyEvent():
         resetSearchBar()
     else:
         highlight = 0
+        results_offset = 0
         buffer += chr(c)
         if len(buffer) >= search_bar.getmaxyx()[1]:
             search_bar.delch(0, 0)
@@ -240,6 +249,7 @@ def processKeyEvent():
 
     results = db.find(buffer)
     displayResults(results)
+    search_len = len(results)
 
     return True
     
