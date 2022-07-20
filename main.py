@@ -1,10 +1,16 @@
 import sys, os, subprocess
 from subprocess import DEVNULL, STDOUT
+from threading import Thread
 import curses
+import curses.ascii
 import sqlite3
 from curses import wrapper
 
 import db
+
+# TODO: Get rid of arbitrary numbers (eg. scr_y_padding);
+#       they should be calculated automatically
+# TODO: Use threading to scrape web?
 
 
 def openResult(results, i):
@@ -17,10 +23,11 @@ def openResult(results, i):
 
 
 def displayResults(results):
+    # TODO: Show more details with Ctrl-D ? To see filename
     global highlight, results_offset
 
     y_offst= 2 # From top of window
-    scr_y_padding = 6 # From other rows on screen
+    scr_y_padding = 7 # From other rows on screen
     scr_x_padding = 4 # Other columns on screen
 
     results_win.erase()
@@ -32,7 +39,7 @@ def displayResults(results):
     y = 0
     for work in results[results_offset:
                         results_offset + num_rows - scr_y_padding]:
-        r = work[0] + " - " + work[2] # Title - Composer
+        r = work[0] + " - " + work[1] # Title - Composer
         
         if len(r) >= num_cols - scr_x_padding:
             r = r[:num_cols - scr_x_padding - 3]
@@ -51,14 +58,15 @@ def displayResults(results):
 
 
 def init():
-    global screen, search_bar, results_win, num_rows, num_cols
+    global screen, search_bar, status_bar, results_win, num_rows, num_cols
     global buffer, highlight, search_len, buffer_offset, results_offset
 
     db.init()
     screen = curses.initscr()
     num_rows, num_cols = screen.getmaxyx()
     search_bar = curses.newwin(1, num_cols, 1, 0)
-    results_win = curses.newwin(num_rows - 3, num_cols, 3, 0)
+    results_win = curses.newwin(num_rows - 4, num_cols, 3, 0)
+    status_bar = curses.newwin(1, num_cols, num_rows - 1, 0)
     buffer = ""
     highlight = 0
     buffer_offset = 0
@@ -79,6 +87,7 @@ def init():
             curses.A_BOLD | curses.A_REVERSE)
     screen.refresh()
 
+    updateStatus()
     resetSearchBar()
 
     results = db.find("")
@@ -96,6 +105,14 @@ def resetSearchBar():
     screen.refresh()
     search_bar.move(0, 0)
 
+
+def updateStatus(status=":q to Quit | :u to Update library"):
+    status_bar.erase()
+    status_bar.addstr(0, 0, status, curses.A_ITALIC)
+    status_bar.refresh()
+    screen.refresh()
+
+
 def screenResize():
     global num_rows, num_cols
 
@@ -103,10 +120,12 @@ def screenResize():
 
     screen.resize(num_rows, num_cols)
     search_bar.resize(1, num_cols)
-    results_win.resize(num_rows - 3, num_cols)
+    status_bar.resize(1, num_cols)
+    results_win.resize(num_rows - 4, num_cols)
     
     screen.clear()
     search_bar.clear()
+    status_bar.clear()
     results_win.clear()
 
     screen.addstr(0, 0,
@@ -118,8 +137,47 @@ def screenResize():
     search_bar.move(0, 0)
 
 
+def updateLibrary():
+    screen.nodelay(True)
+    file_names = db.getFileNames()
+    percent = 0
+    i = 0
+    for file in file_names:
+        char = screen.getch()
+        if char == ord("c"):
+            updateStatus("Update cancelled, {}% complete".format(percent))
+            break
+        db.update(file)
+        i += 1
+        percent = int(i/len(file_names) * 100)
+        status = "["
+        for j in range(0, 40):
+            if i / len(file_names) <= j / 40:
+                status += "."
+            else: status += "#"
+        status += "] {}% | Press C to cancel".format(percent)
+        updateStatus(status)
+    screen.nodelay(False)
+
+
+def editEntry(results, i):
+    curses.echo()
+    status_title = "Title: "
+    updateStatus(status_title)
+    title = status_bar.getstr(0, len(status_title))
+    status_composer = "Composer: "
+    updateStatus(status_composer)
+    composer = status_bar.getstr(0, len(status_composer))
+    curses.noecho()
+
+    path = results[i][2]
+    updates = {"title": title.decode("utf-8"), "composer": composer.decode("utf-8")}
+    db.editEntry(path, updates)
+
+
 def processKeyEvent():
     # TODO: add sideways movement
+    # TODO: remove entry from db - how to handle?
     global buffer, highlight, search_len, buffer_offset, results_offset
     global num_rows
     c = search_bar.getch()
@@ -130,9 +188,12 @@ def processKeyEvent():
     if c == ord('\n'):
         if buffer == ":q":
             return False
-        results = db.find(buffer)
-        search_len = len(results)
-        openResult(results, highlight + results_offset)
+        elif buffer == ":u":
+            updateLibrary()
+        else:
+            results = db.find(buffer)
+            search_len = len(results)
+            openResult(results, highlight + results_offset)
         buffer = ""
         resetSearchBar()
     elif c == curses.KEY_RESIZE:
@@ -141,6 +202,10 @@ def processKeyEvent():
         buffer = ""
     elif c == curses.KEY_MOUSE or c == curses.KEY_LEFT or c == curses.KEY_RIGHT:
         pass
+    elif curses.ascii.unctrl(c) == "^E":
+        results = db.find(buffer)
+        search_len = len(results)
+        editEntry(results, highlight + results_offset)
     elif c == curses.KEY_DOWN: 
         # TODO: ERROR Type text and use arrows,
         #       the cursor goes down to last result
@@ -166,6 +231,7 @@ def processKeyEvent():
         buffer = ""
         resetSearchBar()
     else:
+        highlight = 0
         buffer += chr(c)
         if len(buffer) >= search_bar.getmaxyx()[1]:
             search_bar.delch(0, 0)

@@ -10,7 +10,7 @@ def init():
     try:
         conn.execute("""CREATE VIRTUAL TABLE works
                 USING FTS5(title, composer, path);""")
-        print("Database created")
+        return "Database created"
     except:
         pass
 
@@ -52,9 +52,10 @@ def getFileNames():
     file_names = []
 
     for root, dirs, files in os.walk(path):
+        rel = root.replace(path, "")[1:]
         for file in files:
             if file.endswith(".pdf"):
-                file_names.append(file)
+                file_names.append(os.path.join(rel, file))
 
     return file_names
 
@@ -65,16 +66,19 @@ def addEntry(result, path):
     conn.commit()
 
 
-def update():
-    file_names = getFileNames()
+def editEntry(path, updates):
+    conn.execute("""UPDATE works
+            SET title = ?, composer = ?
+            WHERE path = ?;""", (updates["title"], updates["composer"], path))
+    conn.commit()
 
-    for file in file_names:
-        if not findPath(file):
-            print("New file found: ", file)
-            result = search.search(file[:-4])
-            if result == -1: 
-                result = {"title": file[:-4], "composer": "unknown"}
-            addEntry(result, file)
+
+def update(file):
+    if not findPath(file):
+        result = search.search(file[:-4])
+        if result == -1: 
+            result = {"title": file[:-4], "composer": "unknown"}
+        addEntry(result, file)
 
 
 if __name__ == "__main__":

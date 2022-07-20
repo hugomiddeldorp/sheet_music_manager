@@ -20,7 +20,6 @@ def scrape(query):
             for a in anchors:
                 if "imslp.org" in a.text: # Just IMSLP for now, later Wikipedia?
                     results.append(a["href"])
-                    print(a["href"])
     else:
         return -1
 
@@ -61,12 +60,12 @@ def search(query):
     if results:
         try: return getInfo(results[0])
         except:
-            print("Found the file on IMSLP but had an error retrieving its info.")
+#            print("Found the file on IMSLP but had an error retrieving its info.")
             return -1
-    elif results == -1:
-        print("Error with the search crawl.")
-    else:
-        print("Could not find any results.")
+#    elif results == -1:
+#        print("Error with the search crawl.")
+#    else:
+#        print("Could not find any results.")
     return -1
 
 
