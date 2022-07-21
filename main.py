@@ -13,18 +13,16 @@ import db
 # TODO: Use threading to scrape web?
 
 
-def openResult(results, i):
+def openResult(path):
     # TODO: Handle errors
-    path = results[i][2]
     try:
         os.startfile(path)
     except:
         p = subprocess.Popen(["open", path], stdout=DEVNULL, stderr=STDOUT)
 
 
-def displayResults(results):
+def displayResults(results, highlight, results_offset):
     # TODO: Show more details with Ctrl-D ? To see filename
-    global highlight, results_offset
 
     y_offst= 2 # From top of window
     scr_y_padding = 7 # From other rows on screen
@@ -77,6 +75,7 @@ def init():
     curses.cbreak()
     screen.keypad(True)
     search_bar.keypad(True)
+    status_bar.keypad(True)
 
     curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_CYAN)
 
@@ -88,22 +87,6 @@ def init():
     screen.refresh()
 
     updateStatus()
-    resetSearchBar()
-
-    results = db.find("")
-    search_len = len(results)
-    displayResults(results)
-    search_bar.move(0, 0)
-
-
-def resetSearchBar():
-    search_bar.erase()
-    search_bar.addstr(0, 0,
-            "Type to start searching...",
-            curses.A_DIM)
-    search_bar.refresh()
-    screen.refresh()
-    search_bar.move(0, 0)
 
 
 def updateStatus(status=":q to Quit | :u to Update library | Ctrl-E to Edit current entry"):
@@ -132,7 +115,6 @@ def screenResize():
     screen.addstr(0, 0,
             " Sheet Music Manager v0.1 - by Hugo Middeldorp ",
             curses.A_BOLD | curses.A_REVERSE)
-    resetSearchBar()
     screen.refresh()
 
     search_bar.move(0, 0)
@@ -165,94 +147,87 @@ def updateLibrary():
     screen.nodelay(False)
 
 
-def editEntry(results, i):
-    # TODO: More robust way to enter text
-    curses.echo()
-    status_title = "Title: "
-    updateStatus(status_title)
-    title = status_bar.getstr(0, len(status_title))
-    status_composer = "Composer: "
-    updateStatus(status_composer)
-    composer = status_bar.getstr(0, len(status_composer))
-    curses.noecho()
+def editEntry(path):
+    # TODO: leave blank to keep the same as it currently is
+    title = processKeyEvent(status_bar, "Title")
+    composer = processKeyEvent(status_bar, "Composer")
 
-    path = results[i][2]
-    updates = {"title": title.decode("utf-8"), "composer": composer.decode("utf-8")}
+    updates = {"title": title, "composer": composer}
     db.editEntry(path, updates)
     updateStatus()
 
 
-def processKeyEvent():
-    # TODO: Refactor this whole function
-    # TODO: add sideways movement
-    global buffer, highlight, search_len, buffer_offset, results_offset
-    global num_rows
-    c = search_bar.getch()
+def processKeyEvent(win, sample="Type here to start..."):
+    global search_bar, status_bar, num_rows
+    
+    win.erase()
+    win.addstr(0, 0, sample, curses.A_DIM)
+    win.refresh()
+    win.move(0, 0)
 
-    if buffer == "":
-        search_bar.erase()
+    buffer = ""
+    highlight = 0
+    results_offset = 0
+    buffer_offset = 0
 
-    if c == ord('\n'):
-        if buffer == ":q":
-            return False
-        elif buffer == ":u":
+    while True:
+        if win == search_bar:
+            results = db.find(buffer)
+            displayResults(results, highlight, results_offset)
+            search_len = len(results)
+
+        # TODO: Problem with entering special characters eg. ó
+        c = win.getch()
+
+        if buffer == "":
+            win.erase()
+
+        if c == ord('\n'):
+            if buffer.startswith(":"):
+                return buffer
+            elif win == search_bar:
+                path = results[highlight + results_offset][2]
+                return ":o/{}".format(path)
+            return buffer
+        elif c == curses.KEY_RESIZE:
+            screenResize()
+            return ""
+        elif c == curses.KEY_MOUSE or c == curses.KEY_LEFT or c == curses.KEY_RIGHT:
+            pass
+        elif c == curses.KEY_BACKSPACE:
+            if len(buffer) > 0:
+                win.delch(0, len(buffer) - buffer_offset - 1)
+                buffer = buffer[:-1]
+                if buffer_offset:
+                    buffer_offset -= 1
+                    win.addstr(0, 0, buffer[buffer_offset:])
+        elif c == 27:
+            return ""
+        elif curses.ascii.iscntrl(c):
+            if curses.ascii.unctrl(c) == "^E" and win == search_bar:
+                path = results[highlight + results_offset][2]
+                return ":e/{}".format(path)
+        elif c == curses.KEY_DOWN and win == search_bar: 
+            # TODO: ERROR Type text and use arrows,
+            #       the cursor goes down to last result
+            if highlight < search_len - results_offset - 1:
+                if highlight >= num_rows - 8:
+                    results_offset += 1
+                else: highlight += 1
+        elif c == curses.KEY_UP and win == search_bar:
+            if highlight > 0: 
+                highlight -= 1
+            elif results_offset > 0:
+                results_offset -= 1
+        else:
             highlight = 0
             results_offset = 0
-            buffer = ""
-            resetSearchBar()
-            updateLibrary()
-        else:
-            results = db.find(buffer)
-            search_len = len(results)
-            openResult(results, highlight + results_offset)
-    elif c == curses.KEY_RESIZE:
-        screenResize()
-        buffer = ""
-    elif c == curses.KEY_MOUSE or c == curses.KEY_LEFT or c == curses.KEY_RIGHT:
-        pass
-    elif curses.ascii.unctrl(c) == "^E":
-        results = db.find(buffer)
-        search_len = len(results)
-        editEntry(results, highlight + results_offset)
-    elif c == curses.KEY_DOWN: 
-        # TODO: ERROR Type text and use arrows,
-        #       the cursor goes down to last result
-        if highlight < search_len - results_offset - 1:
-            if highlight >= num_rows - 8:
-                results_offset += 1
-            else: highlight += 1
-    elif c == curses.KEY_UP:
-        if highlight > 0: 
-            highlight -= 1
-        elif results_offset > 0:
-            results_offset -= 1
-    elif c == curses.KEY_BACKSPACE:
-        if len(buffer) > 0:
-            search_bar.delch(0, len(buffer) - buffer_offset - 1)
-            buffer = buffer[:-1]
-            if buffer_offset:
-                buffer_offset -= 1
-                search_bar.addstr(0, 0, buffer[buffer_offset:])
-    elif c == 27:
-        highlight = 0
-        results_offset = 0
-        buffer = ""
-        resetSearchBar()
-    else:
-        highlight = 0
-        results_offset = 0
-        buffer += chr(c)
-        if len(buffer) >= search_bar.getmaxyx()[1]:
-            search_bar.delch(0, 0)
-            buffer_offset += 1
-        search_bar.addch(0, len(buffer) - buffer_offset - 1, c)
+            buffer += chr(c)
+            if len(buffer) >= win.getmaxyx()[1]:
+                win.delch(0, 0)
+                buffer_offset += 1
+            win.addch(0, len(buffer) - buffer_offset - 1, c, curses.A_NORMAL)
 
-    results = db.find(buffer)
-    displayResults(results)
-    search_len = len(results)
-
-    return True
-    
 
 def kill():
     db.close()
@@ -266,8 +241,17 @@ def kill():
 def main(screen):
     init()
 
-    while processKeyEvent():
-        pass
+    buffer = ""
+
+    while buffer != ":q":
+        buffer = processKeyEvent(search_bar)
+        
+        if buffer == ":u":
+            updateLibrary()
+        elif buffer.startswith(":e/"):
+            editEntry(buffer[3:])
+        elif buffer.startswith(":o/"):
+            openResult(buffer[3:])
 
     kill()
 
