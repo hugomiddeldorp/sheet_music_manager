@@ -150,7 +150,13 @@ def updateLibrary():
 def editEntry(path):
     # TODO: leave blank to keep the same as it currently is
     title = processKeyEvent(status_bar, "Title")
+    if not title:
+        updateStatus()
+        return
     composer = processKeyEvent(status_bar, "Composer")
+    if not composer:
+        updateStatus()
+        return
 
     updates = {"title": title, "composer": composer}
     db.editEntry(path, updates)
@@ -177,12 +183,13 @@ def processKeyEvent(win, sample="Type here to start..."):
             search_len = len(results)
 
         # TODO: Problem with entering special characters eg. ó
-        c = win.getch()
+        #       looks like get_wch() might be the answer
+        c = win.get_wch()
 
         if buffer == "":
             win.erase()
 
-        if c == ord('\n'):
+        if c == '\n':
             if buffer.startswith(":"):
                 return buffer
             elif win == search_bar:
@@ -201,12 +208,11 @@ def processKeyEvent(win, sample="Type here to start..."):
                 if buffer_offset:
                     buffer_offset -= 1
                     win.addstr(0, 0, buffer[buffer_offset:])
-        elif c == 27:
+        elif curses.ascii.unctrl(c) == "^[":
             return ""
-        elif curses.ascii.iscntrl(c):
-            if curses.ascii.unctrl(c) == "^E" and win == search_bar:
-                path = results[highlight + results_offset][2]
-                return ":e/{}".format(path)
+        elif curses.ascii.unctrl(c) == "^E" and win == search_bar:
+            path = results[highlight + results_offset][2]
+            return ":e/{}".format(path)
         elif c == curses.KEY_DOWN and win == search_bar: 
             # TODO: ERROR Type text and use arrows,
             #       the cursor goes down to last result
@@ -219,14 +225,16 @@ def processKeyEvent(win, sample="Type here to start..."):
                 highlight -= 1
             elif results_offset > 0:
                 results_offset -= 1
+        elif isinstance(c, int):
+            pass
         else:
             highlight = 0
             results_offset = 0
-            buffer += chr(c)
+            buffer += c
             if len(buffer) >= win.getmaxyx()[1]:
                 win.delch(0, 0)
                 buffer_offset += 1
-            win.addch(0, len(buffer) - buffer_offset - 1, c, curses.A_NORMAL)
+            win.addstr(0, len(buffer) - buffer_offset - 1, c, curses.A_NORMAL)
 
 
 def kill():
