@@ -1,5 +1,7 @@
 # Sheet Music Manager
 
+![Screenshot from 2022-07-25 10-33-40](https://user-images.githubusercontent.com/20556684/180668575-91afa573-df3b-46fb-9b11-ac702db32d69.png)
+
 A Python CLI to manage your sheet music library.
 
 ## Install
