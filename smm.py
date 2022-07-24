@@ -182,8 +182,6 @@ def processKeyEvent(win, sample="Type here to start..."):
             displayResults(results, highlight, results_offset)
             search_len = len(results)
 
-        # TODO: Problem with entering special characters eg. ó
-        #       looks like get_wch() might be the answer
         c = win.get_wch()
 
         if buffer == "":
@@ -262,6 +260,10 @@ def main(screen):
             openResult(buffer[3:])
 
     kill()
+
+
+def start():
+    wrapper(main)
 
 
 if __name__ == "__main__":
