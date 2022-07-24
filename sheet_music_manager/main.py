@@ -6,7 +6,7 @@ import curses.ascii
 import sqlite3
 from curses import wrapper
 
-import db
+from . import db
 
 # TODO: Get rid of arbitrary numbers (eg. scr_y_padding);
 #       they should be calculated automatically

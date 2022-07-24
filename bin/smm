@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-from sheet_music_manager import start
-from curses import wrapper
+import sheet_music_manager
 
-wrapper(start)
+sheet_music_manager.start()

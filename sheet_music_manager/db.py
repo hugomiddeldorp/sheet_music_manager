@@ -1,6 +1,6 @@
 import sqlite3
 import os
-import search
+from . import search
 
 
 def init():

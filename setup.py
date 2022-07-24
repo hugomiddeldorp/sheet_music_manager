@@ -10,8 +10,8 @@ setuptools.setup(
         author_email="hugomiddeldorp@gmail.com",
         description="A Python CLI to manage your sheet music library.",
         license="MIT",
-        packages=["sheet_music_manager"]
-        python_requires='>=3.6',
+        packages=setuptools.find_packages(),
         scripts=["bin/smm"],
+        python_requires='>=3.6',
         install_requires=requirements,
 )
